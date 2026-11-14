@@ -2,7 +2,23 @@
 
 این پوشه شامل بک‌اند کامل Cloudflare Worker و دیتابیس Cloudflare D1 (مشابه معماری پروژه DevQuiz) است تا کاربران بتوانند ثبت‌نام/ورود کنند و درس‌ها، فصل‌ها، جزوه‌ها و پیشرفت خود را روی کلادفلر ذخیره و در هر دستگاهی دریافت کنند.
 
-## مراحل استقرار (کمتر از ۳ دقیقه)
+## استقرار فعلی (انجام‌شده)
+
+- فرانت: https://darsnegar-app.pages.dev (Cloudflare Pages، پروژه `darsnegar-app`)
+- بک‌اند: https://darsnegar-api.mohammadjavadsharifi98.workers.dev (Worker `darsnegar-api`)
+- دیتابیس: D1 `darsnegar-db` با schema اجراشده، `JWT_SECRET` به‌صورت secret تنظیم شده
+
+به‌روزرسانی بعدی:
+
+```bash
+# بک‌اند
+cd cloudflare-worker && npx wrangler deploy
+
+# فرانت
+npm run build && npx wrangler pages deploy dist --project-name darsnegar-app --branch main
+```
+
+## مراحل استقرار از صفر (کمتر از ۳ دقیقه)
 
 1. نصب ابزارها در پوشه `cloudflare-worker`:
 ```bash
