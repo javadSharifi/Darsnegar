@@ -28,8 +28,10 @@ import type {
   CloudUser,
   ExamAttempt,
   FontSizePreference,
+  HighlightColor,
   Lesson,
   LessonViewMode,
+  TextHighlight,
   UserQuestionProgress,
 } from '../types/learning';
 import {
@@ -65,6 +67,9 @@ interface LessonWorkspaceProps {
   onSaveClassNote: (lessonId: string, note: ClassNote) => void;
   onDeleteClassNote: (lessonId: string, noteId: string) => void;
   onSaveCourseOverview: (lessonId: string, courseOverview: string) => void;
+  onAddHighlights: (lessonId: string, highlights: TextHighlight[]) => void;
+  onUpdateHighlightColor: (lessonId: string, highlightId: string, color: HighlightColor) => void;
+  onRemoveHighlights: (lessonId: string, highlightIds: string[]) => void;
   onRecordExam: (attempt: ExamAttempt) => void;
   cloudUser: CloudUser | null;
   cloudSyncing: boolean;
@@ -89,6 +94,9 @@ export function LessonWorkspace({
   onSaveClassNote,
   onDeleteClassNote,
   onSaveCourseOverview,
+  onAddHighlights,
+  onUpdateHighlightColor,
+  onRemoveHighlights,
   onRecordExam,
   cloudUser,
   cloudSyncing,
@@ -1073,6 +1081,13 @@ export function LessonWorkspace({
                 content={displayedContent}
                 fontSize={fontSize}
                 headingIdPrefix="lesson-sec"
+                scopeKey={activeChapter ? `chapter:${activeChapter.id}` : 'lesson'}
+                highlights={activeLesson.highlights ?? []}
+                onAddHighlights={(items) => onAddHighlights(activeLesson.id, items)}
+                onUpdateHighlightColor={(hlId, color) =>
+                  onUpdateHighlightColor(activeLesson.id, hlId, color)
+                }
+                onRemoveHighlights={(ids) => onRemoveHighlights(activeLesson.id, ids)}
               />
             </div>
 

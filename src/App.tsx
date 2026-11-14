@@ -246,6 +246,9 @@ export default function App() {
             onSaveClassNote={store.saveClassNote}
             onDeleteClassNote={store.deleteClassNote}
             onSaveCourseOverview={store.saveCourseOverview}
+            onAddHighlights={store.addTextHighlights}
+            onUpdateHighlightColor={store.updateTextHighlightColor}
+            onRemoveHighlights={store.removeTextHighlights}
             onRecordExam={store.recordExamAttempt}
             cloudUser={store.cloudUser}
             cloudSyncing={store.cloudSyncing}

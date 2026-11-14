@@ -340,3 +340,55 @@ body::after {
     animation: none;
   }
 }
+
+/* Text highlighter marks inside lesson content */
+.darsnegar-mark {
+  color: var(--ink-strong);
+  border-radius: 5px;
+  padding: 0.04em 0.16em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+  transition: filter 140ms ease;
+}
+
+.darsnegar-mark:hover {
+  filter: brightness(0.95);
+}
+
+.darsnegar-mark-yellow {
+  background-color: rgba(250, 204, 21, 0.42);
+}
+
+.darsnegar-mark-green {
+  background-color: rgba(52, 211, 153, 0.34);
+}
+
+.darsnegar-mark-blue {
+  background-color: rgba(96, 165, 250, 0.32);
+}
+
+.darsnegar-mark-pink {
+  background-color: rgba(244, 114, 182, 0.3);
+}
+
+:root[data-theme='dark'] .darsnegar-mark-yellow {
+  background-color: rgba(250, 204, 21, 0.28);
+  color: #fef3c7;
+}
+
+:root[data-theme='dark'] .darsnegar-mark-green {
+  background-color: rgba(52, 211, 153, 0.24);
+  color: #d1fae5;
+}
+
+:root[data-theme='dark'] .darsnegar-mark-blue {
+  background-color: rgba(96, 165, 250, 0.26);
+  color: #dbeafe;
+}
+
+:root[data-theme='dark'] .darsnegar-mark-pink {
+  background-color: rgba(244, 114, 182, 0.25);
+  color: #fce7f3;
+}
+
