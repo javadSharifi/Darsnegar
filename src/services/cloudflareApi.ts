@@ -18,8 +18,10 @@ export const CF_LAST_SYNCED_KEY = 'darsnegar_cf_last_synced_v1';
 export const CF_DELETED_LESSONS_KEY = 'darsnegar_cf_deleted_lessons_v1';
 export const CF_PENDING_SYNC_KEY = 'darsnegar_cf_pending_sync_v1';
 
-export const DEFAULT_PROD_API_URL =
-  'https://darsnegar-api.mohammadjavadsharifi98.workers.dev';
+export const DEFAULT_PROD_API_URL = '';
+
+// Old direct worker URL; blocked on some networks, so requests now go through /api on the same origin.
+const LEGACY_WORKER_URL = 'https://darsnegar-api.mohammadjavadsharifi98.workers.dev';
 
 export function getEnvDefaultApiBaseUrl(): string {
   const envUrl =
@@ -35,7 +37,13 @@ export function getStoredApiBaseUrl(): string {
   try {
     const saved = window.localStorage.getItem(CF_API_URL_KEY);
     if (saved && saved.trim().length > 0) {
-      return saved.trim().replace(/\/+$/, '');
+      const clean = saved.trim().replace(/\/+$/, '');
+      // Users who saved the old worker URL get switched to the same-origin proxy.
+      if (clean === LEGACY_WORKER_URL) {
+        window.localStorage.removeItem(CF_API_URL_KEY);
+        return getEnvDefaultApiBaseUrl();
+      }
+      return clean;
     }
   } catch {
     // Ignore storage read error

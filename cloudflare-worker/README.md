@@ -7,6 +7,7 @@
 - فرانت: https://darsnegar-app.pages.dev (Cloudflare Pages، پروژه `darsnegar-app`)
 - بک‌اند: https://darsnegar-api.mohammadjavadsharifi98.workers.dev (Worker `darsnegar-api`)
 - دیتابیس: D1 `darsnegar-db` با schema اجراشده، `JWT_SECRET` به‌صورت secret تنظیم شده
+- فرانت با `/api/*` روی همان دامنه به Worker پروکسی می‌کند (`functions/api/[[path]].ts`)، چون `*.workers.dev` در بعضی شبکه‌ها مسدود است. پس نیازی به تنظیم آدرس ورکر در تنظیمات نیست.
 
 به‌روزرسانی بعدی:
 
