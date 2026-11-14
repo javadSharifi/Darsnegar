@@ -179,7 +179,7 @@ interface RequestOptions {
 
 async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const baseUrl =
-    options.baseUrlOverride !== undefined
+    options.baseUrlOverride && options.baseUrlOverride.trim()
       ? options.baseUrlOverride.trim().replace(/\/+$/, '')
       : getStoredApiBaseUrl();
 
@@ -197,12 +197,13 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Pr
   }
 
   try {
+    // No keepalive: Chrome rejects keepalive POSTs with bodies over 64KB ("Failed to fetch"),
+    // and sync payloads exceed that easily.
     const res = await fetch(url, {
       method: options.method || 'GET',
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       signal: controller.signal,
-      keepalive: options.method === 'POST',
     });
 
     let data: unknown;
