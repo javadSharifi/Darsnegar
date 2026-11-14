@@ -505,7 +505,7 @@ export function SettingsView({
           <div className="mt-4 space-y-4 pt-3 border-t border-[var(--line)]">
             <div className="space-y-1.5">
               <label htmlFor="cloudflare-worker-url" className="block text-xs font-semibold text-[var(--muted)]">
-                آدرس ورکر کلادفلر (اختیاری — در صورت خالی بودن از سرور داخلی برنامه استفاده می‌شود)
+                آدرس ورکر کلادفلر (اختیاری — در صورت خالی بودن از سرور پیش‌فرض درس‌نگار استفاده می‌شود)
               </label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input

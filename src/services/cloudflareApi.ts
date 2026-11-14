@@ -18,6 +18,9 @@ export const CF_LAST_SYNCED_KEY = 'darsnegar_cf_last_synced_v1';
 export const CF_DELETED_LESSONS_KEY = 'darsnegar_cf_deleted_lessons_v1';
 export const CF_PENDING_SYNC_KEY = 'darsnegar_cf_pending_sync_v1';
 
+export const DEFAULT_PROD_API_URL =
+  'https://darsnegar-api.mohammadjavadsharifi98.workers.dev';
+
 export function getEnvDefaultApiBaseUrl(): string {
   const envUrl =
     typeof import.meta !== 'undefined' &&
@@ -25,7 +28,7 @@ export function getEnvDefaultApiBaseUrl(): string {
     typeof import.meta.env.VITE_CLOUDFLARE_API_URL === 'string'
       ? import.meta.env.VITE_CLOUDFLARE_API_URL
       : '';
-  return envUrl.trim().replace(/\/+$/, '');
+  return envUrl.trim().replace(/\/+$/, '') || DEFAULT_PROD_API_URL;
 }
 
 export function getStoredApiBaseUrl(): string {
