@@ -1,0 +1,8 @@
+{
+  "name": "درس‌نگار | پلتفرم یادگیری، خلاصه‌نویسی و آزمون",
+  "description": "پلتفرم جامع یادگیری با قابلیت افزودن متن درس، خلاصه درس، فلش‌کارت‌های تعاملی و حالت امتحانی با طراحی شیشه‌ای و راست‌به‌چپ.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

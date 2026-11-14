@@ -1,0 +1,342 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Rooznegar Glass Design System — Light & Dark Tokens */
+:root {
+  --ink: #1d1f33;
+  --ink-strong: #1a1c30;
+  --ink-2: #3a3e58;
+  --muted: #5a5e78;
+  --faint: #787d9c;
+  --line: rgba(40, 44, 90, 0.09);
+  --line-2: rgba(40, 44, 90, 0.14);
+
+  --blue: #3e63dd;
+  --blue-ink: #2c48b8;
+  --purple: #7a5bda;
+  --purple-ink: #5b3fbf;
+  --peach: #d97346;
+  --peach-ink: #9a4a26;
+  --ok: #1f7a5c;
+  --ok-ink: #176048;
+  --danger: #c63636;
+  --danger-ink: #a32626;
+
+  --bg: #f4f3f9;
+  --g1: #dcd2f8;
+  --g2: #ccddf6;
+  --g3: #f8dbca;
+
+  --blob-a: #b6c8ff;
+  --blob-a-o: 0.65;
+  --blob-a-blur: 56px;
+  --blob-b: #f6c6ac;
+  --blob-b-o: 0.6;
+  --blob-b-blur: 60px;
+
+  --glass: rgba(255, 255, 255, 0.64);
+  --glass-strong: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.88);
+  --glass-shadow: 0 14px 34px -18px rgba(50, 54, 110, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  --field: rgba(255, 255, 255, 0.78);
+  --sunk: rgba(40, 44, 90, 0.06);
+  --sunk-2: rgba(40, 44, 90, 0.09);
+  --edge: rgba(40, 44, 90, 0.12);
+  --hi: rgba(255, 255, 255, 0.95);
+  --sh: rgba(50, 54, 110, 0.28);
+
+  --blue-tint: rgba(62, 99, 221, 0.11);
+  --blue-soft: rgba(62, 99, 221, 0.14);
+  --surface-2: rgba(255, 255, 255, 0.72);
+  --purple-tint: rgba(124, 92, 219, 0.12);
+  --ok-tint: rgba(31, 122, 92, 0.12);
+  --peach-tint: rgba(217, 115, 70, 0.14);
+  --danger-tint: rgba(198, 54, 54, 0.11);
+
+  --primary: linear-gradient(150deg, #6b88ff 0%, #3e63dd 60%, #314fc2 100%);
+  --primary-shadow: 0 10px 20px -10px rgba(52, 82, 210, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  --nav-bg: rgba(255, 255, 255, 0.88);
+  --nav-puck: rgba(255, 255, 255, 0.98);
+  --code-bg: #171a2b;
+  --code-ink: #e8ecff;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --ink: #f1f2f8;
+  --ink-strong: #f6f7fc;
+  --ink-2: #c8cbe0;
+  --muted: #a6abc6;
+  --faint: #8a8fad;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-2: rgba(255, 255, 255, 0.14);
+
+  --blue: #7591ff;
+  --blue-ink: #b4c4ff;
+  --purple: #a58cf5;
+  --purple-ink: #cdbbff;
+  --peach: #f0905f;
+  --peach-ink: #f3b796;
+  --ok: #7fd9ae;
+  --ok-ink: #8ce5ba;
+  --danger: #ff7e7e;
+  --danger-ink: #ffa8a8;
+
+  --bg: #0c0e16;
+  --g1: #222b62;
+  --g2: #2c2053;
+  --g3: #3a2433;
+
+  --blob-a: #3d52c4;
+  --blob-a-o: 0.52;
+  --blob-a-blur: 64px;
+  --blob-b: #7a3f86;
+  --blob-b-o: 0.42;
+  --blob-b-blur: 68px;
+
+  --glass: rgba(34, 37, 54, 0.62);
+  --glass-strong: rgba(36, 40, 60, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.11);
+  --glass-shadow: 0 16px 36px -18px rgba(0, 0, 0, 0.78), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --field: rgba(255, 255, 255, 0.07);
+  --sunk: rgba(255, 255, 255, 0.06);
+  --sunk-2: rgba(255, 255, 255, 0.1);
+  --edge: rgba(255, 255, 255, 0.13);
+  --hi: rgba(255, 255, 255, 0.08);
+  --sh: rgba(0, 0, 0, 0.62);
+
+  --blue-tint: rgba(117, 145, 255, 0.18);
+  --blue-soft: rgba(117, 145, 255, 0.22);
+  --surface-2: rgba(255, 255, 255, 0.08);
+  --purple-tint: rgba(165, 140, 245, 0.18);
+  --ok-tint: rgba(127, 217, 174, 0.16);
+  --peach-tint: rgba(240, 144, 95, 0.17);
+  --danger-tint: rgba(255, 126, 126, 0.16);
+
+  --primary: linear-gradient(150deg, #7591ff 0%, #4b6ae6 60%, #3753c9 100%);
+  --primary-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --nav-bg: rgba(28, 31, 46, 0.9);
+  --nav-puck: rgba(46, 51, 74, 0.98);
+  --code-bg: #0b0d17;
+  --code-ink: #e2e8ff;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  overflow-x: clip;
+  color: var(--ink);
+  font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+  background:
+    radial-gradient(68% 40% at 100% 0%, var(--g1) 0%, transparent 100%),
+    radial-gradient(58% 36% at 0% 30%, var(--g2) 0%, transparent 100%),
+    radial-gradient(76% 38% at 60% 100%, var(--g3) 0%, transparent 100%),
+    var(--bg);
+  background-attachment: fixed;
+  line-height: 1.7;
+}
+
+/* Rooznegar signature two ambient blurred color blobs */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+body::before {
+  top: 120px;
+  left: -70px;
+  width: 260px;
+  height: 260px;
+  background: var(--blob-a);
+  filter: blur(var(--blob-a-blur));
+  opacity: var(--blob-a-o);
+}
+
+body::after {
+  bottom: 90px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  background: var(--blob-b);
+  filter: blur(var(--blob-b-blur));
+  opacity: var(--blob-b-o);
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glass surfaces */
+.glass-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(24px) saturate(165%);
+  -webkit-backdrop-filter: blur(24px) saturate(165%);
+  border-radius: 26px;
+}
+
+.glass-card-strong {
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(26px) saturate(175%);
+  -webkit-backdrop-filter: blur(26px) saturate(175%);
+  border-radius: 26px;
+}
+
+.glass-subtle {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  border-radius: 22px;
+}
+
+.lesson-card-surface {
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 26px -18px rgba(45, 50, 105, 0.28), inset 0 1px 0 var(--hi);
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
+  border-radius: 22px;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.lesson-card-surface:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-2);
+  box-shadow: 0 18px 34px -20px rgba(45, 50, 105, 0.38), inset 0 1px 0 var(--hi);
+}
+
+.glass-field {
+  background: var(--field);
+  border: 1px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--hi);
+  border-radius: 16px;
+  color: var(--ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.glass-field:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-tint);
+}
+
+.btn-primary-glass {
+  color: #ffffff;
+  background: var(--primary);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: var(--primary-shadow);
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease;
+}
+
+.btn-primary-glass:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-primary-glass:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-secondary-glass {
+  color: var(--ink);
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--hi);
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.btn-secondary-glass:hover:not(:disabled) {
+  background: var(--field);
+}
+
+/* Rooznegar floating mobile dock & puck pop */
+.rooz-dock {
+  background: var(--nav-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 18px 36px -14px var(--sh), inset 0 1px 0 var(--hi);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 28px;
+}
+
+.rooz-puck {
+  background: var(--nav-puck);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 22px -8px var(--sh), inset 0 1px 0 var(--hi);
+  color: var(--blue-ink);
+  animation: puck-pop 0.32s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes puck-pop {
+  from {
+    transform: translateY(10px) scale(0.76);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 3D Flashcard flip */
+.flashcard-scene {
+  perspective: 1200px;
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.flashcard-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flashcard-face-back {
+  transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .flashcard-inner,
+  .rooz-puck,
+  .btn-primary-glass,
+  .lesson-card-surface {
+    transition: none;
+    animation: none;
+  }
+}

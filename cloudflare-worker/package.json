@@ -1,0 +1,16 @@
+{
+  "name": "darsnegar-cloudflare-worker",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute darsnegar-db --remote --file=./schema.sql",
+    "db:migrate:local": "wrangler d1 execute darsnegar-db --local --file=./schema.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^3.99.0"
+  }
+}

@@ -1,0 +1,12 @@
+name = "darsnegar-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+# Replace via `npx wrangler secret put JWT_SECRET` in production
+JWT_SECRET = "darsnegar-change-this-secret-in-production"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "darsnegar-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
