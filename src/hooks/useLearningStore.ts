@@ -269,6 +269,7 @@ export function useLearningStore() {
       if (debouncedSyncTimerRef.current !== null) {
         window.clearTimeout(debouncedSyncTimerRef.current);
       }
+      // Coalesce rapid edits, then push: every save must reach Cloudflare right away.
       debouncedSyncTimerRef.current = window.setTimeout(async () => {
         debouncedSyncTimerRef.current = null;
         const snap = latestRef.current;
@@ -292,7 +293,7 @@ export function useLearningStore() {
         } catch {
           enqueuePendingCloudChange(change);
         }
-      }, 1800);
+      }, 300);
     },
     [clearPendingCloudQueue, enqueuePendingCloudChange, isCurrentlyOnline]
   );
