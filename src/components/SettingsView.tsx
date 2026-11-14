@@ -17,6 +17,7 @@ import {
   Sun,
   Upload,
   User,
+  WifiOff,
 } from 'lucide-react';
 import type {
   AppSettings,
@@ -26,6 +27,7 @@ import type {
   ThemePreference,
 } from '../types/learning';
 import { toPersianDigits } from '../utils/studyEngine';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -34,6 +36,8 @@ interface SettingsViewProps {
   cloudSyncing: boolean;
   cloudLastSyncedAt: number | null;
   cloudApiUrl: string;
+  isOnline: boolean;
+  pendingSyncCount: number;
   onUpdateSettings: (partial: Partial<AppSettings>) => void;
   onExportBackup: () => string;
   onImportBackup: (jsonText: string) => { ok: boolean; message: string };
@@ -69,6 +73,8 @@ export function SettingsView({
   cloudSyncing,
   cloudLastSyncedAt,
   cloudApiUrl,
+  isOnline,
+  pendingSyncCount,
   onUpdateSettings,
   onExportBackup,
   onImportBackup,
@@ -235,17 +241,28 @@ export function SettingsView({
     <div className="space-y-5 max-w-3xl mx-auto min-w-0">
       {/* Cloudflare Account & Cloud Lesson Sync Card */}
       <section className="glass-card-strong p-5 sm:p-7 space-y-5 min-w-0">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1 min-w-0">
             <h1 className="text-xl font-extrabold text-[var(--ink-strong)] flex items-center gap-2">
               <Cloud className="h-5 w-5 text-[var(--blue)] shrink-0" />
               <span>حساب کاربری و اتصال به کلادفلر</span>
             </h1>
             <p className="text-xs text-[var(--muted)] leading-6">
-              درس‌ها، فصل‌ها، جزوه‌ها و پیشرفت خود را روی سرور ابری (Cloudflare Worker + D1) ذخیره کنید تا در همه دستگاه‌ها در دسترس باشد.
+              درس‌ها، فصل‌ها، جزوه‌ها و پیشرفت خود را روی سرور ابری (Cloudflare Worker + D1) ذخیره کنید تا در همه دستگاه‌ها و حتی هنگام قطع اینترنت در دسترس باشد.
             </p>
           </div>
         </div>
+
+        <PWAInstallButton variant="card" />
+
+        {!isOnline && (
+          <div className="flex items-center gap-2 rounded-2xl border border-[var(--peach)]/30 bg-[var(--peach-tint)] px-4 py-2.5 text-xs font-semibold text-[var(--peach-ink)]">
+            <WifiOff className="h-4 w-4 shrink-0 text-[var(--peach)]" />
+            <span>
+              در حال حاضر آفلاین هستید. درس‌های ذخیره‌شده بدون اینترنت کار می‌کنند و تغییرات پس از اتصال خودکار ارسال می‌شوند.
+            </span>
+          </div>
+        )}
 
         {cloudUser ? (
           <div className="space-y-4">
@@ -268,6 +285,14 @@ export function SettingsView({
                 <span>{toPersianDigits(lessonCount)} درس محلی</span>
                 <span aria-hidden="true">·</span>
                 <span>آخرین همگام‌سازی: {formatLastSynced(cloudLastSyncedAt)}</span>
+                {pendingSyncCount > 0 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="font-bold text-[var(--peach-ink)]">
+                      {toPersianDigits(pendingSyncCount)} تغییر در صف ارسال
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { LessonBuilder } from './components/LessonBuilder';
 import { LessonWorkspace } from './components/LessonWorkspace';
+import { OfflineStatusBanner } from './components/OfflineStatusBanner';
 import { ReviewQueue } from './components/ReviewQueue';
 import { SearchView } from './components/SearchView';
 import { SettingsView } from './components/SettingsView';
@@ -216,6 +217,16 @@ export default function App() {
         </div>
       </header>
 
+      {/* Top Offline / Reconnect Auto-Sync Status Bar */}
+      <OfflineStatusBanner
+        isOnline={store.isOnline}
+        hasCloudAccount={Boolean(store.cloudUser)}
+        pendingChangesCount={store.offlineQueue.pendingChangesCount}
+        reconnectSyncStatus={store.reconnectSyncStatus}
+        onManualRetrySync={() => void store.flushOfflineQueue()}
+        onDismissSynced={store.dismissReconnectBanner}
+      />
+
       {/* Main Workspace Container */}
       <main className="mx-auto w-full max-w-[1160px] min-w-0 px-4 pt-4 sm:pt-5 sm:px-6 space-y-5">
         {/* Active View */}
@@ -238,6 +249,7 @@ export default function App() {
             onRecordExam={store.recordExamAttempt}
             cloudUser={store.cloudUser}
             cloudSyncing={store.cloudSyncing}
+            isOnline={store.isOnline}
             onSyncWithCloud={store.performCloudSync}
             onPushLessonToCloud={store.pushLessonToCloud}
             onOpenCloudSettings={() => navigateTo('settings')}
@@ -298,6 +310,8 @@ export default function App() {
             cloudSyncing={store.cloudSyncing}
             cloudLastSyncedAt={store.cloudLastSyncedAt}
             cloudApiUrl={store.cloudApiUrl}
+            isOnline={store.isOnline}
+            pendingSyncCount={store.offlineQueue.pendingChangesCount}
             onUpdateSettings={store.updateSettings}
             onExportBackup={store.exportBackupJson}
             onImportBackup={store.importBackupJson}

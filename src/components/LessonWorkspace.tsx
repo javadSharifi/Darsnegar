@@ -43,6 +43,7 @@ import {
 import { LessonContentRenderer } from './LessonContentRenderer';
 import { LessonExamPanel } from './LessonExamPanel';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { PWAInstallButton } from './PWAInstallButton';
 
 type PendingDeleteTarget =
   | { kind: 'lesson'; lesson: Lesson; returnToList: boolean }
@@ -67,6 +68,7 @@ interface LessonWorkspaceProps {
   onRecordExam: (attempt: ExamAttempt) => void;
   cloudUser: CloudUser | null;
   cloudSyncing: boolean;
+  isOnline: boolean;
   onSyncWithCloud: () => Promise<CloudSyncResult>;
   onPushLessonToCloud: (lesson: Lesson) => Promise<CloudSyncResult>;
   onOpenCloudSettings: () => void;
@@ -90,6 +92,7 @@ export function LessonWorkspace({
   onRecordExam,
   cloudUser,
   cloudSyncing,
+  isOnline,
   onSyncWithCloud,
   onPushLessonToCloud,
   onOpenCloudSettings,
@@ -534,7 +537,13 @@ export function LessonWorkspace({
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ok-ink)] hover:underline cursor-pointer whitespace-nowrap disabled:opacity-60"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${cloudSyncing ? 'animate-spin' : ''}`} />
-                  <span>{cloudSyncing ? 'در حال همگام‌سازی...' : 'همگام‌سازی کلادفلر'}</span>
+                  <span>
+                    {cloudSyncing
+                      ? 'در حال همگام‌سازی...'
+                      : isOnline
+                        ? 'همگام‌سازی کلادفلر'
+                        : 'همگام‌سازی (آفلاین)'}
+                  </span>
                 </button>
               ) : (
                 <button
@@ -547,6 +556,8 @@ export function LessonWorkspace({
                   <span>اتصال به کلادفلر</span>
                 </button>
               )}
+
+              <PWAInstallButton variant="compact-link" />
 
               <button
                 type="button"
@@ -780,7 +791,13 @@ export function LessonWorkspace({
             className="btn-secondary-glass inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap disabled:opacity-60"
           >
             <CloudUpload className="h-3.5 w-3.5 text-[var(--blue)]" />
-            <span>{cloudUser ? 'ارسال به کلادفلر' : 'ذخیره در کلادفلر'}</span>
+            <span>
+              {!isOnline
+                ? 'ذخیره در صف ارسال'
+                : cloudUser
+                  ? 'ارسال به کلادفلر'
+                  : 'ذخیره در کلادفلر'}
+            </span>
           </button>
 
           <button

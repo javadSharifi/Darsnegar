@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6B88FF" />
+      <stop offset="55%" stop-color="#3E63DD" />
+      <stop offset="100%" stop-color="#7A5BDA" />
+    </linearGradient>
+    <linearGradient id="pageGrad" x1="128" y1="120" x2="384" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#EDF1FF" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bgGrad)" />
+  <rect x="20" y="20" width="472" height="472" rx="100" stroke="rgba(255,255,255,0.28)" stroke-width="6" />
+  <path d="M138 158C138 140.327 152.327 126 170 126H244V372H170C152.327 372 138 357.673 138 340V158Z" fill="url(#pageGrad)" fill-opacity="0.96" />
+  <path d="M374 158C374 140.327 359.673 126 342 126H268V372H342C359.673 372 374 357.673 374 340V158Z" fill="url(#pageGrad)" fill-opacity="0.88" />
+  <rect x="248" y="126" width="16" height="246" rx="8" fill="#314FC2" fill-opacity="0.35" />
+  <rect x="166" y="182" width="54" height="14" rx="7" fill="#3E63DD" fill-opacity="0.45" />
+  <rect x="166" y="218" width="44" height="14" rx="7" fill="#3E63DD" fill-opacity="0.35" />
+  <rect x="292" y="182" width="54" height="14" rx="7" fill="#7A5BDA" fill-opacity="0.45" />
+  <rect x="292" y="218" width="44" height="14" rx="7" fill="#7A5BDA" fill-opacity="0.35" />
+  <circle cx="364" cy="144" r="32" fill="#D97346" />
+  <path d="M364 126L369 139L382 144L369 149L364 162L359 149L346 144L359 139L364 126Z" fill="#FFFFFF" />
+</svg>

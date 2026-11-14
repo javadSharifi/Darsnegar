@@ -14,12 +14,14 @@ import type {
 } from '../types/learning';
 import {
   clearCloudSession,
+  clearOfflineQueue,
   deleteCloudLessonApi,
   getDeletedLessonRecords,
   getStoredApiBaseUrl,
   getStoredCloudToken,
   getStoredCloudUser,
   getStoredLastSyncedAt,
+  getStoredOfflineQueue,
   healthCheckApi,
   loginApi,
   pullCloudSyncApi,
@@ -30,9 +32,17 @@ import {
   saveCloudSession,
   saveDeletedLessonRecords,
   saveLastSyncedAt,
+  saveOfflineQueue,
   setStoredApiBaseUrl,
 } from '../services/cloudflareApi';
+import type { ReconnectSyncStatus } from '../components/OfflineStatusBanner';
 import { mergeFullCloudPayload } from '../utils/cloudMerge';
+import {
+  EMPTY_OFFLINE_QUEUE,
+  enqueueOfflineChange,
+  shouldFlushOfflineQueue,
+  type OfflineSyncQueue,
+} from '../utils/offlineQueue';
 import {
   createBackupPayload,
   getLocalDateKey,
@@ -132,6 +142,13 @@ export function useLearningStore() {
   );
   const [cloudApiUrl, setCloudApiUrl] = useState<string>(() => getStoredApiBaseUrl());
 
+  // Offline status + durable offline sync queue
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+  const [offlineQueue, setOfflineQueue] = useState<OfflineSyncQueue>(() => getStoredOfflineQueue());
+  const [reconnectSyncStatus, setReconnectSyncStatus] = useState<ReconnectSyncStatus>('idle');
+
   // Always keep fresh snapshot ref for async sync handlers
   const latestRef = useRef({
     lessons,
@@ -139,6 +156,8 @@ export function useLearningStore() {
     gamification,
     examHistory,
     cloudToken,
+    isOnline,
+    offlineQueue,
   });
   latestRef.current = {
     lessons,
@@ -146,9 +165,13 @@ export function useLearningStore() {
     gamification,
     examHistory,
     cloudToken,
+    isOnline,
+    offlineQueue,
   };
 
   const debouncedSyncTimerRef = useRef<number | null>(null);
+  const syncedDismissTimerRef = useRef<number | null>(null);
+  const flushingRef = useRef(false);
 
   // Sync activeLessonId if deleted
   useEffect(() => {
@@ -168,6 +191,9 @@ export function useLearningStore() {
     return () => {
       if (debouncedSyncTimerRef.current !== null) {
         window.clearTimeout(debouncedSyncTimerRef.current);
+      }
+      if (syncedDismissTimerRef.current !== null) {
+        window.clearTimeout(syncedDismissTimerRef.current);
       }
     };
   }, []);
@@ -191,38 +217,95 @@ export function useLearningStore() {
     return () => media.removeEventListener('change', apply);
   }, [settings.theme]);
 
-  const scheduleCloudPush = useCallback(() => {
-    const token = latestRef.current.cloudToken;
-    if (!token) return;
-    if (debouncedSyncTimerRef.current !== null) {
-      window.clearTimeout(debouncedSyncTimerRef.current);
-    }
-    debouncedSyncTimerRef.current = window.setTimeout(async () => {
-      debouncedSyncTimerRef.current = null;
-      const snap = latestRef.current;
-      if (!snap.cloudToken) return;
-      try {
-        await pushCloudSyncApi(snap.cloudToken, {
-          lessons: snap.lessons,
-          deletedLessons: getDeletedLessonRecords(),
-          progress: snap.progress,
-          gamification: snap.gamification,
-          examHistory: snap.examHistory,
-        });
-        const now = Date.now();
-        saveLastSyncedAt(now);
-        setCloudLastSyncedAt(now);
-      } catch {
-        // Silent background retry via manual sync
-      }
-    }, 1800);
+  const isCurrentlyOnline = useCallback(() => {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+    return latestRef.current.isOnline;
   }, []);
+
+  const enqueuePendingCloudChange = useCallback(
+    (change: { lessonId?: string; deletedLessonId?: string } = {}) => {
+      if (!latestRef.current.cloudToken) return;
+      setOfflineQueue((prev) => {
+        const next = enqueueOfflineChange(prev, change);
+        saveOfflineQueue(next);
+        latestRef.current.offlineQueue = next;
+        return next;
+      });
+    },
+    []
+  );
+
+  const clearPendingCloudQueue = useCallback(() => {
+    clearOfflineQueue();
+    const empty = { ...EMPTY_OFFLINE_QUEUE };
+    latestRef.current.offlineQueue = empty;
+    setOfflineQueue(empty);
+  }, []);
+
+  const dismissReconnectBanner = useCallback(() => {
+    if (syncedDismissTimerRef.current !== null) {
+      window.clearTimeout(syncedDismissTimerRef.current);
+      syncedDismissTimerRef.current = null;
+    }
+    setReconnectSyncStatus('idle');
+  }, []);
+
+  const scheduleCloudPush = useCallback(
+    (change: { lessonId?: string; deletedLessonId?: string } = {}) => {
+      const token = latestRef.current.cloudToken;
+      if (!token) return;
+
+      if (!isCurrentlyOnline()) {
+        if (debouncedSyncTimerRef.current !== null) {
+          window.clearTimeout(debouncedSyncTimerRef.current);
+          debouncedSyncTimerRef.current = null;
+        }
+        enqueuePendingCloudChange(change);
+        return;
+      }
+
+      if (debouncedSyncTimerRef.current !== null) {
+        window.clearTimeout(debouncedSyncTimerRef.current);
+      }
+      debouncedSyncTimerRef.current = window.setTimeout(async () => {
+        debouncedSyncTimerRef.current = null;
+        const snap = latestRef.current;
+        if (!snap.cloudToken) return;
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          enqueuePendingCloudChange(change);
+          return;
+        }
+        try {
+          await pushCloudSyncApi(snap.cloudToken, {
+            lessons: snap.lessons,
+            deletedLessons: getDeletedLessonRecords(),
+            progress: snap.progress,
+            gamification: snap.gamification,
+            examHistory: snap.examHistory,
+          });
+          const now = Date.now();
+          saveLastSyncedAt(now);
+          setCloudLastSyncedAt(now);
+          clearPendingCloudQueue();
+        } catch {
+          enqueuePendingCloudChange(change);
+        }
+      }, 1800);
+    },
+    [clearPendingCloudQueue, enqueuePendingCloudChange, isCurrentlyOnline]
+  );
 
   const performCloudSyncWithToken = useCallback(
     async (tokenOverride?: string): Promise<CloudSyncResult> => {
       const token = tokenOverride ?? latestRef.current.cloudToken;
       if (!token) {
         return { ok: false, message: 'ابتدا در بخش تنظیمات وارد حساب کلادفلر خود شوید.' };
+      }
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return {
+          ok: false,
+          message: 'شما آفلاین هستید؛ تغییرات ذخیره شده و به‌محض اتصال به اینترنت ارسال می‌شوند.',
+        };
       }
 
       setCloudSyncing(true);
@@ -252,6 +335,7 @@ export function useLearningStore() {
         const now = Date.now();
         saveLastSyncedAt(now);
         setCloudLastSyncedAt(now);
+        clearPendingCloudQueue();
 
         const pulledTotal = pulledNewCount + updatedFromCloudCount;
         const msg =
@@ -275,13 +359,86 @@ export function useLearningStore() {
         setCloudSyncing(false);
       }
     },
-    []
+    [clearPendingCloudQueue]
   );
+
+  const flushOfflineQueue = useCallback(async () => {
+    const onlineNow = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    const ready = shouldFlushOfflineQueue({
+      isOnline: onlineNow,
+      hasAuthToken: Boolean(latestRef.current.cloudToken),
+      queue: latestRef.current.offlineQueue,
+      isSyncing: flushingRef.current,
+    });
+    if (!ready) return;
+
+    flushingRef.current = true;
+    if (syncedDismissTimerRef.current !== null) {
+      window.clearTimeout(syncedDismissTimerRef.current);
+      syncedDismissTimerRef.current = null;
+    }
+    setReconnectSyncStatus('syncing');
+
+    try {
+      const res = await performCloudSyncWithToken();
+      if (res.ok) {
+        setReconnectSyncStatus('synced');
+        syncedDismissTimerRef.current = window.setTimeout(() => {
+          setReconnectSyncStatus('idle');
+          syncedDismissTimerRef.current = null;
+        }, 4500);
+      } else {
+        setReconnectSyncStatus('idle');
+      }
+    } finally {
+      flushingRef.current = false;
+    }
+  }, [performCloudSyncWithToken]);
+
+  // Listen to browser online / offline events & flush queued changes immediately upon reconnect
+  useEffect(() => {
+    const handleOffline = () => {
+      setIsOnline(false);
+      latestRef.current.isOnline = false;
+      setReconnectSyncStatus('idle');
+      if (debouncedSyncTimerRef.current !== null) {
+        window.clearTimeout(debouncedSyncTimerRef.current);
+        debouncedSyncTimerRef.current = null;
+        enqueuePendingCloudChange({});
+      }
+    };
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      latestRef.current.isOnline = true;
+      void flushOfflineQueue();
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    // Flush any leftover offline edits from a previous session if app starts online
+    if (typeof navigator === 'undefined' || navigator.onLine) {
+      void flushOfflineQueue();
+    }
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [enqueuePendingCloudChange, flushOfflineQueue]);
 
   const pushAllLessonsToCloud = useCallback(async (): Promise<CloudSyncResult> => {
     const token = latestRef.current.cloudToken;
     if (!token) {
       return { ok: false, message: 'برای ارسال درس‌ها به کلادفلر ابتدا وارد حساب شوید.' };
+    }
+    if (!isCurrentlyOnline()) {
+      enqueuePendingCloudChange({});
+      return {
+        ok: false,
+        message: 'شما آفلاین هستید؛ تغییرات ذخیره شده و به‌محض اتصال به اینترنت ارسال می‌شوند.',
+      };
     }
     setCloudSyncing(true);
     try {
@@ -296,6 +453,7 @@ export function useLearningStore() {
       const now = Date.now();
       saveLastSyncedAt(now);
       setCloudLastSyncedAt(now);
+      clearPendingCloudQueue();
       return {
         ok: true,
         message: `تمام ${toPersianDigits(res.syncedLessons || snap.lessons.length)} درس با موفقیت روی کلادفلر ذخیره شد.`,
@@ -303,6 +461,7 @@ export function useLearningStore() {
         syncedAt: now,
       };
     } catch (err) {
+      enqueuePendingCloudChange({});
       return {
         ok: false,
         message: err instanceof Error ? err.message : 'ارسال درس‌ها به کلادفلر ناموفق بود.',
@@ -310,38 +469,49 @@ export function useLearningStore() {
     } finally {
       setCloudSyncing(false);
     }
-  }, []);
+  }, [clearPendingCloudQueue, enqueuePendingCloudChange, isCurrentlyOnline]);
 
-  const pushLessonToCloud = useCallback(async (lesson: Lesson): Promise<CloudSyncResult> => {
-    const token = latestRef.current.cloudToken;
-    if (!token) {
-      return { ok: false, message: 'برای ذخیره درس روی کلادفلر، ابتدا در تنظیمات وارد حساب شوید.' };
-    }
-    setCloudSyncing(true);
-    try {
-      const payload: Lesson = {
-        ...lesson,
-        updatedAt: lesson.updatedAt || Date.now(),
-      };
-      await pushSingleLessonApi(token, payload);
-      const now = Date.now();
-      saveLastSyncedAt(now);
-      setCloudLastSyncedAt(now);
-      return {
-        ok: true,
-        message: `درس «${lesson.title}» با موفقیت روی کلادفلر ذخیره شد.`,
-        pushedLessons: 1,
-        syncedAt: now,
-      };
-    } catch (err) {
-      return {
-        ok: false,
-        message: err instanceof Error ? err.message : 'خطا در ارسال درس به کلادفلر.',
-      };
-    } finally {
-      setCloudSyncing(false);
-    }
-  }, []);
+  const pushLessonToCloud = useCallback(
+    async (lesson: Lesson): Promise<CloudSyncResult> => {
+      const token = latestRef.current.cloudToken;
+      if (!token) {
+        return { ok: false, message: 'برای ذخیره درس روی کلادفلر، ابتدا در تنظیمات وارد حساب شوید.' };
+      }
+      if (!isCurrentlyOnline()) {
+        enqueuePendingCloudChange({ lessonId: lesson.id });
+        return {
+          ok: false,
+          message: `شما آفلاین هستید؛ درس «${lesson.title}» در صف ارسال خودکار پس از اتصال قرار گرفت.`,
+        };
+      }
+      setCloudSyncing(true);
+      try {
+        const payload: Lesson = {
+          ...lesson,
+          updatedAt: lesson.updatedAt || Date.now(),
+        };
+        await pushSingleLessonApi(token, payload);
+        const now = Date.now();
+        saveLastSyncedAt(now);
+        setCloudLastSyncedAt(now);
+        return {
+          ok: true,
+          message: `درس «${lesson.title}» با موفقیت روی کلادفلر ذخیره شد.`,
+          pushedLessons: 1,
+          syncedAt: now,
+        };
+      } catch (err) {
+        enqueuePendingCloudChange({ lessonId: lesson.id });
+        return {
+          ok: false,
+          message: err instanceof Error ? err.message : 'خطا در ارسال درس به کلادفلر.',
+        };
+      } finally {
+        setCloudSyncing(false);
+      }
+    },
+    [enqueuePendingCloudChange, isCurrentlyOnline]
+  );
 
   const registerToCloud = useCallback(
     async (
@@ -350,6 +520,12 @@ export function useLearningStore() {
       name?: string,
       website?: string
     ): Promise<CloudSyncResult> => {
+      if (!isCurrentlyOnline()) {
+        return {
+          ok: false,
+          message: 'اتصال اینترنت برقرار نیست. برای ثبت‌نام در کلادفلر ابتدا به اینترنت متصل شوید.',
+        };
+      }
       try {
         const res = await registerApi(email, password, name, { website });
         saveCloudSession(res.user, res.token);
@@ -371,11 +547,17 @@ export function useLearningStore() {
         };
       }
     },
-    [performCloudSyncWithToken]
+    [isCurrentlyOnline, performCloudSyncWithToken]
   );
 
   const loginToCloud = useCallback(
     async (email: string, password: string): Promise<CloudSyncResult> => {
+      if (!isCurrentlyOnline()) {
+        return {
+          ok: false,
+          message: 'اتصال اینترنت برقرار نیست. برای ورود به حساب کلادفلر ابتدا به اینترنت متصل شوید.',
+        };
+      }
       try {
         const res = await loginApi(email, password);
         saveCloudSession(res.user, res.token);
@@ -399,15 +581,18 @@ export function useLearningStore() {
         };
       }
     },
-    [performCloudSyncWithToken]
+    [isCurrentlyOnline, performCloudSyncWithToken]
   );
 
   const logoutFromCloud = useCallback(() => {
     clearCloudSession();
+    clearPendingCloudQueue();
+    dismissReconnectBanner();
     setCloudUser(null);
     setCloudToken(null);
+    latestRef.current.cloudToken = null;
     setCloudLastSyncedAt(null);
-  }, []);
+  }, [clearPendingCloudQueue, dismissReconnectBanner]);
 
   const updateCloudApiUrl = useCallback((url: string): string => {
     const normalized = setStoredApiBaseUrl(url);
@@ -417,6 +602,12 @@ export function useLearningStore() {
 
   const testCloudConnection = useCallback(
     async (overrideUrl?: string): Promise<{ ok: boolean; message: string }> => {
+      if (!isCurrentlyOnline()) {
+        return {
+          ok: false,
+          message: 'شما آفلاین هستید؛ پس از اتصال به اینترنت وضعیت سرور را تست کنید.',
+        };
+      }
       try {
         const res = await healthCheckApi(overrideUrl);
         if (res.ok) {
@@ -436,13 +627,19 @@ export function useLearningStore() {
         };
       }
     },
-    []
+    [isCurrentlyOnline]
   );
 
-  const addLesson = useCallback((newLesson: Lesson) => {
-    setLessons((prev) => [newLesson, ...prev]);
-    setActiveLessonId(newLesson.id);
-    if (latestRef.current.cloudToken) {
+  const addLesson = useCallback(
+    (newLesson: Lesson) => {
+      latestRef.current.lessons = [newLesson, ...latestRef.current.lessons];
+      setLessons((prev) => [newLesson, ...prev]);
+      setActiveLessonId(newLesson.id);
+      if (!latestRef.current.cloudToken) return;
+      if (!isCurrentlyOnline()) {
+        enqueuePendingCloudChange({ lessonId: newLesson.id });
+        return;
+      }
       void pushSingleLessonApi(latestRef.current.cloudToken, newLesson)
         .then(() => {
           const now = Date.now();
@@ -450,24 +647,34 @@ export function useLearningStore() {
           setCloudLastSyncedAt(now);
         })
         .catch(() => {
-          // Will sync on next full sync
+          enqueuePendingCloudChange({ lessonId: newLesson.id });
         });
-    }
-  }, []);
+    },
+    [enqueuePendingCloudChange, isCurrentlyOnline]
+  );
 
   const addLessonsBatch = useCallback(
     (incoming: Lesson[]) => {
       if (incoming.length === 0) return;
+      latestRef.current.lessons = [...incoming, ...latestRef.current.lessons];
       setLessons((prev) => [...incoming, ...prev]);
       setActiveLessonId(incoming[0].id);
-      scheduleCloudPush();
+      scheduleCloudPush({ lessonId: incoming[0].id });
     },
     [scheduleCloudPush]
   );
 
-  const updateLesson = useCallback((updated: Lesson) => {
-    setLessons((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-    if (latestRef.current.cloudToken) {
+  const updateLesson = useCallback(
+    (updated: Lesson) => {
+      latestRef.current.lessons = latestRef.current.lessons.map((item) =>
+        item.id === updated.id ? updated : item
+      );
+      setLessons((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      if (!latestRef.current.cloudToken) return;
+      if (!isCurrentlyOnline()) {
+        enqueuePendingCloudChange({ lessonId: updated.id });
+        return;
+      }
       void pushSingleLessonApi(latestRef.current.cloudToken, updated)
         .then(() => {
           const now = Date.now();
@@ -475,15 +682,24 @@ export function useLearningStore() {
           setCloudLastSyncedAt(now);
         })
         .catch(() => {
-          // Will sync on next full sync
+          enqueuePendingCloudChange({ lessonId: updated.id });
         });
-    }
-  }, []);
+    },
+    [enqueuePendingCloudChange, isCurrentlyOnline]
+  );
 
-  const deleteLesson = useCallback((lessonId: string) => {
-    setLessons((prev) => prev.filter((item) => item.id !== lessonId));
-    recordDeletedLesson(lessonId);
-    if (latestRef.current.cloudToken) {
+  const deleteLesson = useCallback(
+    (lessonId: string) => {
+      latestRef.current.lessons = latestRef.current.lessons.filter(
+        (item) => item.id !== lessonId
+      );
+      setLessons((prev) => prev.filter((item) => item.id !== lessonId));
+      recordDeletedLesson(lessonId);
+      if (!latestRef.current.cloudToken) return;
+      if (!isCurrentlyOnline()) {
+        enqueuePendingCloudChange({ deletedLessonId: lessonId });
+        return;
+      }
       void deleteCloudLessonApi(latestRef.current.cloudToken, lessonId)
         .then(() => {
           const now = Date.now();
@@ -491,10 +707,11 @@ export function useLearningStore() {
           setCloudLastSyncedAt(now);
         })
         .catch(() => {
-          // Tombstone remains recorded locally for next sync
+          enqueuePendingCloudChange({ deletedLessonId: lessonId });
         });
-    }
-  }, []);
+    },
+    [enqueuePendingCloudChange, isCurrentlyOnline]
+  );
 
   const addQuestionToLesson = useCallback(
     (lessonId: string, question: LessonQuestion) => {
@@ -525,7 +742,7 @@ export function useLearningStore() {
           };
         })
       );
-      scheduleCloudPush();
+      scheduleCloudPush({ lessonId });
     },
     [scheduleCloudPush]
   );
@@ -547,7 +764,7 @@ export function useLearningStore() {
           };
         })
       );
-      scheduleCloudPush();
+      scheduleCloudPush({ lessonId });
     },
     [scheduleCloudPush]
   );
@@ -564,7 +781,7 @@ export function useLearningStore() {
           };
         })
       );
-      scheduleCloudPush();
+      scheduleCloudPush({ lessonId });
     },
     [scheduleCloudPush]
   );
@@ -582,7 +799,7 @@ export function useLearningStore() {
             : lesson
         )
       );
-      scheduleCloudPush();
+      scheduleCloudPush({ lessonId });
     },
     [scheduleCloudPush]
   );
@@ -717,12 +934,17 @@ export function useLearningStore() {
     importBackupJson,
     resetProgressOnly,
     restoreDefaultLessons,
-    // Cloud Sync (Cloudflare Worker + D1)
+    // Cloud Sync (Cloudflare Worker + D1) & Offline Queue
     cloudUser,
     cloudToken,
     cloudSyncing,
     cloudLastSyncedAt,
     cloudApiUrl,
+    isOnline,
+    offlineQueue,
+    reconnectSyncStatus,
+    dismissReconnectBanner,
+    flushOfflineQueue,
     registerToCloud,
     loginToCloud,
     logoutFromCloud,

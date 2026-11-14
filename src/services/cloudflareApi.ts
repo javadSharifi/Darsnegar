@@ -5,11 +5,18 @@ import type {
   Lesson,
 } from '../types/learning';
 
+import {
+  EMPTY_OFFLINE_QUEUE,
+  normalizeOfflineQueue,
+  type OfflineSyncQueue,
+} from '../utils/offlineQueue';
+
 export const CF_AUTH_TOKEN_KEY = 'darsnegar_cf_token_v1';
 export const CF_AUTH_USER_KEY = 'darsnegar_cf_user_v1';
 export const CF_API_URL_KEY = 'darsnegar_cf_api_url_v1';
 export const CF_LAST_SYNCED_KEY = 'darsnegar_cf_last_synced_v1';
 export const CF_DELETED_LESSONS_KEY = 'darsnegar_cf_deleted_lessons_v1';
+export const CF_PENDING_SYNC_KEY = 'darsnegar_cf_pending_sync_v1';
 
 export function getEnvDefaultApiBaseUrl(): string {
   const envUrl =
@@ -89,6 +96,37 @@ export function clearCloudSession(): void {
     window.localStorage.removeItem(CF_AUTH_USER_KEY);
     window.localStorage.removeItem(CF_AUTH_TOKEN_KEY);
     window.localStorage.removeItem(CF_LAST_SYNCED_KEY);
+    window.localStorage.removeItem(CF_PENDING_SYNC_KEY);
+  } catch {
+    // Ignore
+  }
+}
+
+export function getStoredOfflineQueue(): OfflineSyncQueue {
+  try {
+    const raw = window.localStorage.getItem(CF_PENDING_SYNC_KEY);
+    if (!raw) return { ...EMPTY_OFFLINE_QUEUE };
+    return normalizeOfflineQueue(JSON.parse(raw));
+  } catch {
+    return { ...EMPTY_OFFLINE_QUEUE };
+  }
+}
+
+export function saveOfflineQueue(queue: OfflineSyncQueue): void {
+  try {
+    if (!queue.dirty && queue.pendingChangesCount === 0) {
+      window.localStorage.removeItem(CF_PENDING_SYNC_KEY);
+      return;
+    }
+    window.localStorage.setItem(CF_PENDING_SYNC_KEY, JSON.stringify(queue));
+  } catch {
+    // Ignore quota errors cleanly
+  }
+}
+
+export function clearOfflineQueue(): void {
+  try {
+    window.localStorage.removeItem(CF_PENDING_SYNC_KEY);
   } catch {
     // Ignore
   }
