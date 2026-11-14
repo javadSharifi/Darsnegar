@@ -316,7 +316,6 @@ export default function App() {
             onExportBackup={store.exportBackupJson}
             onImportBackup={store.importBackupJson}
             onResetProgress={store.resetProgressOnly}
-            onRestoreDefaults={store.restoreDefaultLessons}
             onRegisterToCloud={store.registerToCloud}
             onLoginToCloud={store.loginToCloud}
             onLogoutFromCloud={store.logoutFromCloud}

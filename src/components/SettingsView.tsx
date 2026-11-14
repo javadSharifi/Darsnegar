@@ -42,7 +42,6 @@ interface SettingsViewProps {
   onExportBackup: () => string;
   onImportBackup: (jsonText: string) => { ok: boolean; message: string };
   onResetProgress: () => void;
-  onRestoreDefaults: () => void;
   onRegisterToCloud: (
     email: string,
     password: string,
@@ -79,7 +78,6 @@ export function SettingsView({
   onExportBackup,
   onImportBackup,
   onResetProgress,
-  onRestoreDefaults,
   onRegisterToCloud,
   onLoginToCloud,
   onLogoutFromCloud,
@@ -720,17 +718,6 @@ export function SettingsView({
                 <span>صفر کردن امتیازها و تاریخچه</span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={() => {
-                onRestoreDefaults();
-                setFeedback({ ok: true, text: 'درس‌های پیش‌فرض بازیابی شدند.' });
-              }}
-              className="btn-secondary-glass rounded-full px-4 py-2 text-xs font-semibold cursor-pointer whitespace-nowrap"
-            >
-              بازیابی درس‌های نمونه اولیه
-            </button>
           </div>
         </div>
 

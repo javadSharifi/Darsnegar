@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { SEED_LESSONS } from '../data/seedLessons';
 import type {
   AppSettings,
   ClassNote,
@@ -68,6 +67,13 @@ const LEGACY_PROGRAMMING_SEED_IDS = new Set([
   'lesson-ts-generics',
 ]);
 
+// Seed lessons are no longer shipped; strip them from anyone who still has them.
+const LEGACY_SEED_LESSON_IDS = new Set([
+  'lesson-psych-clinical-assessment',
+  'lesson-psych-sibling-relationships',
+  'lesson-psych-maternal-depression',
+]);
+
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'auto',
   fontSize: 'medium',
@@ -101,15 +107,12 @@ function writeStorage<T>(key: string, value: T): void {
 
 export function useLearningStore() {
   const [lessons, setLessons] = useState<Lesson[]>(() => {
-    const savedV2 = readStorage<Lesson[] | null>(KEYS.lessons, null);
-    if (savedV2 && savedV2.length > 0) return savedV2;
-
-    // Migrate any custom lessons created under v1, while replacing old programming defaults
-    const legacyV1 = readStorage<Lesson[] | null>(KEYS.legacyLessonsV1, null);
-    const customFromV1 = (legacyV1 ?? []).filter(
-      (item) => item && !LEGACY_PROGRAMMING_SEED_IDS.has(item.id)
+    const saved = readStorage<Lesson[] | null>(KEYS.lessons, null);
+    const savedV2 = saved ?? readStorage<Lesson[] | null>(KEYS.legacyLessonsV1, null);
+    return (savedV2 ?? []).filter(
+      (item) =>
+        item && !LEGACY_SEED_LESSON_IDS.has(item.id) && !LEGACY_PROGRAMMING_SEED_IDS.has(item.id)
     );
-    return customFromV1.length > 0 ? [...customFromV1, ...SEED_LESSONS] : SEED_LESSONS;
   });
 
   const [progress, setProgress] = useState<Record<string, UserQuestionProgress>>(() =>
@@ -128,10 +131,9 @@ export function useLearningStore() {
     readStorage<AppSettings>(KEYS.settings, DEFAULT_SETTINGS)
   );
 
-  const [activeLessonId, setActiveLessonId] = useState<string>(() => {
-    const savedId = readStorage<string>(KEYS.activeLessonId, '');
-    return savedId || SEED_LESSONS[0].id;
-  });
+  const [activeLessonId, setActiveLessonId] = useState<string>(() =>
+    readStorage<string>(KEYS.activeLessonId, '')
+  );
 
   // Cloud Sync (Cloudflare Worker + D1) state
   const [cloudUser, setCloudUser] = useState<CloudUser | null>(() => getStoredCloudUser());
@@ -326,12 +328,24 @@ export function useLearningStore() {
         );
 
         saveDeletedLessonRecords(merged.deletedLessons ?? []);
-        setLessons(merged.lessons);
+        const mergedLessons = merged.lessons.filter((l) => !LEGACY_SEED_LESSON_IDS.has(l.id));
+        const removedSeedIds = merged.lessons
+          .filter((l) => LEGACY_SEED_LESSON_IDS.has(l.id))
+          .map((l) => l.id);
+        const syncPayload = {
+          ...merged,
+          lessons: mergedLessons,
+          deletedLessons: [
+            ...(merged.deletedLessons ?? []),
+            ...removedSeedIds.map((id) => ({ id, deletedAt: Date.now() })),
+          ],
+        };
+        setLessons(mergedLessons);
         setProgress(merged.progress);
         setGamification(merged.gamification);
         setExamHistory(merged.examHistory);
 
-        const pushRes = await pushCloudSyncApi(token, merged);
+        const pushRes = await pushCloudSyncApi(token, syncPayload);
         const now = Date.now();
         saveLastSyncedAt(now);
         setCloudLastSyncedAt(now);
@@ -904,12 +918,6 @@ export function useLearningStore() {
     scheduleCloudPush();
   }, [scheduleCloudPush]);
 
-  const restoreDefaultLessons = useCallback(() => {
-    setLessons(SEED_LESSONS);
-    setActiveLessonId(SEED_LESSONS[0].id);
-    scheduleCloudPush();
-  }, [scheduleCloudPush]);
-
   return {
     lessons,
     progress,
@@ -933,7 +941,6 @@ export function useLearningStore() {
     exportBackupJson,
     importBackupJson,
     resetProgressOnly,
-    restoreDefaultLessons,
     // Cloud Sync (Cloudflare Worker + D1) & Offline Queue
     cloudUser,
     cloudToken,
