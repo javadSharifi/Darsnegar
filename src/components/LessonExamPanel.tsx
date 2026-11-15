@@ -52,6 +52,8 @@ export function LessonExamPanel({
   const [panelMode, setPanelMode] = useState<PanelMode>('bank');
   const [typeFilter, setTypeFilter] = useState<QuestionTypeFilter>('all');
   const [revealedBankIds, setRevealedBankIds] = useState<Record<string, boolean>>({});
+  const [bankAnswerMode, setBankAnswerMode] = useState<'options' | 'single'>('options');
+  const [bankSelected, setBankSelected] = useState<Record<string, number>>({});
 
   // Interactive Exam State
   const [examPhase, setExamPhase] = useState<ExamPhase>('setup');
@@ -71,6 +73,7 @@ export function LessonExamPanel({
     setPanelMode('bank');
     setTypeFilter('all');
     setRevealedBankIds({});
+    setBankSelected({});
     setExamPhase('setup');
     setExamQuestions([]);
     setSelectedAnswers({});
@@ -327,24 +330,40 @@ export function LessonExamPanel({
           </pre>
         )}
 
-        {qType === 'mcq' && q.options.length > 0 && (
+        {qType === 'mcq' && q.options.length > 0 && bankAnswerMode === 'options' && (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {q.options.map((opt, optIdx) => {
               const isCorrectOpt = optIdx === q.correctOptionIndex;
+              const picked = bankSelected[q.id];
+              const answered = picked !== undefined;
+              const showState = isRevealed || answered;
+              const isPicked = picked === optIdx;
+
               return (
-                <div
+                <button
                   key={optIdx}
-                  className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-xs sm:text-sm leading-6 ${
-                    isRevealed && isCorrectOpt
+                  type="button"
+                  onClick={() =>
+                    setBankSelected((prev) =>
+                      prev[q.id] === undefined ? { ...prev, [q.id]: optIdx } : prev
+                    )
+                  }
+                  disabled={answered}
+                  className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-right text-xs sm:text-sm leading-6 transition-colors ${
+                    showState && isCorrectOpt
                       ? 'border-[var(--ok)] bg-[var(--ok-tint)] text-[var(--ink-strong)] font-semibold'
-                      : 'border-[var(--line)] bg-[var(--glass)] text-[var(--ink)]'
+                      : showState && isPicked
+                        ? 'border-[var(--danger)] bg-[var(--danger-tint)] text-[var(--ink-strong)] font-semibold'
+                        : answered
+                          ? 'border-[var(--line)] bg-[var(--glass)] text-[var(--muted)] opacity-65'
+                          : 'border-[var(--line)] bg-[var(--glass)] text-[var(--ink)] hover:bg-[var(--glass-strong)] hover:border-[var(--line-2)] cursor-pointer'
                   }`}
                 >
                   <span className="font-bold text-[var(--blue-ink)] shrink-0">
                     {getOptionLetter(optIdx)})
                   </span>
                   <span>{opt}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -1076,6 +1095,31 @@ export function LessonExamPanel({
               </button>
             ))}
           </div>
+
+          {panelMode === 'bank' && (
+            <button
+              type="button"
+              data-testid="toggle-bank-answer-mode"
+              onClick={() => {
+                setBankAnswerMode((prev) => (prev === 'options' ? 'single' : 'options'));
+                setBankSelected({});
+              }}
+              aria-pressed={bankAnswerMode === 'single'}
+              className="btn-secondary-glass inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold cursor-pointer whitespace-nowrap"
+            >
+              {bankAnswerMode === 'single' ? (
+                <>
+                  <Layers className="h-3.5 w-3.5" />
+                  <span>حالت چهارگزینه‌ای</span>
+                </>
+              ) : (
+                <>
+                  <FileQuestion className="h-3.5 w-3.5" />
+                  <span>حالت تک‌پاسخ</span>
+                </>
+              )}
+            </button>
+          )}
 
           {panelMode === 'bank' && filteredQuestions.length > 0 && (
             <button
