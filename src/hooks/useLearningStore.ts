@@ -6,9 +6,11 @@ import type {
   CloudUser,
   ExamAttempt,
   GamificationStats,
+  HighlightColor,
   Lesson,
   LessonQuestion,
   QuestionProgressState,
+  TextHighlight,
   UserQuestionProgress,
 } from '../types/learning';
 import {
@@ -819,6 +821,106 @@ export function useLearningStore() {
     [scheduleCloudPush]
   );
 
+  const addTextHighlights = useCallback(
+    (lessonId: string, incoming: TextHighlight[]) => {
+      if (incoming.length === 0) return;
+      setLessons((prev) =>
+        prev.map((lesson) => {
+          if (lesson.id !== lessonId) return lesson;
+          let nextHighlights = [...(lesson.highlights ?? [])];
+          for (const inc of incoming) {
+            if (inc.endOffset <= inc.startOffset) continue;
+            const kept: TextHighlight[] = [];
+            for (const cur of nextHighlights) {
+              const sameTarget =
+                cur.scopeKey === inc.scopeKey &&
+                cur.blockIndex === inc.blockIndex &&
+                (cur.itemIndex ?? -1) === (inc.itemIndex ?? -1);
+              if (!sameTarget || cur.endOffset <= inc.startOffset || cur.startOffset >= inc.endOffset) {
+                kept.push(cur);
+                continue;
+              }
+              if (cur.startOffset < inc.startOffset) {
+                const leftLen = inc.startOffset - cur.startOffset;
+                kept.push({
+                  ...cur,
+                  id: `${cur.id}-l-${inc.createdAt}`,
+                  endOffset: inc.startOffset,
+                  text: cur.text.slice(0, leftLen),
+                });
+              }
+              if (cur.endOffset > inc.endOffset) {
+                const trimLeft = inc.endOffset - cur.startOffset;
+                kept.push({
+                  ...cur,
+                  id: `${cur.id}-r-${inc.createdAt}`,
+                  startOffset: inc.endOffset,
+                  text: cur.text.slice(trimLeft),
+                });
+              }
+            }
+            kept.push(inc);
+            nextHighlights = kept;
+          }
+          nextHighlights.sort(
+            (a, b) =>
+              a.blockIndex - b.blockIndex ||
+              (a.itemIndex ?? -1) - (b.itemIndex ?? -1) ||
+              a.startOffset - b.startOffset
+          );
+          return {
+            ...lesson,
+            highlights: nextHighlights,
+            updatedAt: Date.now(),
+          };
+        })
+      );
+      scheduleCloudPush({ lessonId });
+    },
+    [scheduleCloudPush]
+  );
+
+  const updateTextHighlightColor = useCallback(
+    (lessonId: string, highlightId: string, color: HighlightColor) => {
+      setLessons((prev) =>
+        prev.map((lesson) => {
+          if (lesson.id !== lessonId) return lesson;
+          const existing = lesson.highlights ?? [];
+          if (!existing.some((h) => h.id === highlightId)) return lesson;
+          return {
+            ...lesson,
+            highlights: existing.map((h) => (h.id === highlightId ? { ...h, color } : h)),
+            updatedAt: Date.now(),
+          };
+        })
+      );
+      scheduleCloudPush({ lessonId });
+    },
+    [scheduleCloudPush]
+  );
+
+  const removeTextHighlights = useCallback(
+    (lessonId: string, highlightIds: string[]) => {
+      if (highlightIds.length === 0) return;
+      const idSet = new Set(highlightIds);
+      setLessons((prev) =>
+        prev.map((lesson) => {
+          if (lesson.id !== lessonId) return lesson;
+          const existing = lesson.highlights ?? [];
+          const filtered = existing.filter((h) => !idSet.has(h.id));
+          if (filtered.length === existing.length) return lesson;
+          return {
+            ...lesson,
+            highlights: filtered,
+            updatedAt: Date.now(),
+          };
+        })
+      );
+      scheduleCloudPush({ lessonId });
+    },
+    [scheduleCloudPush]
+  );
+
   const markQuestionState = useCallback(
     (questionId: string, state: QuestionProgressState, xpDelta: number = 0) => {
       setProgress((prev) => ({
@@ -935,6 +1037,9 @@ export function useLearningStore() {
     saveClassNote,
     deleteClassNote,
     saveCourseOverview,
+    addTextHighlights,
+    updateTextHighlightColor,
+    removeTextHighlights,
     markQuestionState,
     markManyQuestionsState,
     recordExamAttempt,

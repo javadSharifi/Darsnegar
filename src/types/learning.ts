@@ -44,6 +44,20 @@ export interface ClassNote {
   updatedAt: number;
 }
 
+export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink';
+
+export interface TextHighlight {
+  id: string;
+  scopeKey: string;
+  blockIndex: number;
+  itemIndex?: number;
+  startOffset: number;
+  endOffset: number;
+  text: string;
+  color: HighlightColor;
+  createdAt: number;
+}
+
 export interface Lesson {
   id: string;
   title: string;
@@ -55,6 +69,7 @@ export interface Lesson {
   content: string;
   chapters?: LessonChapter[];
   classNotes?: ClassNote[];
+  highlights?: TextHighlight[];
   questions: LessonQuestion[];
   createdAt: number;
   updatedAt: number;
